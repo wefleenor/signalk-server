@@ -33,18 +33,22 @@ StreamBundle.prototype.pushDelta = function(delta) {
   try {
     if (delta.updates) {
       delta.updates.forEach(update => {
-        if (update.values) {
-          update.values.forEach(pathValue => {
-            const paths =
-              pathValue.path === ''
+        var items = update.values || update.meta
+        if (items) {
+          items.forEach(pathValue => {
+            if (update.meta) {
+              pathValue.path = pathValue.path + '.meta'
+            }
+            var paths =
+                pathValue.path === ''
                 ? getPathsFromObjectValue(pathValue.value)
                 : [pathValue.path]
             /*
-            For values with empty path and object value we enumerate all the paths in the object
-            and push the original delta's value to all those buses, so that subscriptionmanager
-            can track hits also for paths of naked values (no path, just object value) and when
-            regenerating the outgoing delta will use the unmodified, original delta pathvalue.
-          */
+              For values with empty path and object value we enumerate all the paths in the object
+              and push the original delta's value to all those buses, so that subscriptionmanager
+              can track hits also for paths of naked values (no path, just object value) and when
+              regenerating the outgoing delta will use the unmodified, original delta pathvalue.
+            */
             paths.forEach(path => {
               this.push(path, {
                 path: pathValue.path,
@@ -141,6 +145,14 @@ StreamBundle.prototype.getAvailablePaths = function() {
 }
 
 function toDelta(normalizedDeltaData) {
+  var parts = normalizedDeltaData.path.split('.')
+  var type = parts[parts.length - 1] === 'meta' ? 'meta' : 'values'
+  var path
+  if (type === 'meta') {
+    path = parts.slice(0, parts.length - 1).join('.')
+  } else {
+    path = normalizedDeltaData.path
+  }
   return {
     context: normalizedDeltaData.context,
     updates: [
@@ -148,9 +160,9 @@ function toDelta(normalizedDeltaData) {
         source: normalizedDeltaData.source,
         $source: normalizedDeltaData.$source,
         timestamp: normalizedDeltaData.timestamp,
-        values: [
+        [type]: [
           {
-            path: normalizedDeltaData.path,
+            path: path,
             value: normalizedDeltaData.value
           }
         ]
