@@ -307,6 +307,8 @@ Server.prototype.start = function() {
       startMdns(app)
       app.providers = require('./pipedproviders')(app).start()
 
+      config.sendDefaultDeltas(app)
+
       const primaryPort = getPrimaryPort(app)
       debug(`primary port:${primaryPort}`)
       server.listen(primaryPort, function() {
