@@ -167,7 +167,13 @@ DeltaCache.prototype.getCachedDeltas = function(user, contextFilter, key) {
     }
     if (deltasToProcess) {
       // acc.push(_.reduce(deltas, ((delta, acc) => !acc ? delta : (new Date(delta.timestamp).getTime() > new Date(acc.timestamp).getTime() ? delta : acc))))
-      acc = acc.concat(_.values(deltasToProcess))
+      acc = acc.concat(
+        _.values(
+          _.pickBy(deltasToProcess, (val, key) => {
+            return key != 'meta'
+          })
+        )
+      )
     }
     return acc
   }, [])

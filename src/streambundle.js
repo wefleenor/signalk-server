@@ -18,11 +18,7 @@ const Bacon = require('baconjs')
 const _ = require('lodash')
 const { getMetadata } = require('@signalk/signalk-schema')
 
-<<<<<<< HEAD:src/streambundle.js
-function StreamBundle(selfId) {
-=======
 function StreamBundle (app, selfId) {
->>>>>>> feature: send meta deltas from the schema the first time we see a specific path:lib/streambundle.js
   this.selfContext = 'vessels.' + selfId
   this.buses = {}
   this.allPathsBus = new Bacon.Bus()
