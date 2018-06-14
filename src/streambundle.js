@@ -16,8 +16,13 @@
 
 const Bacon = require('baconjs')
 const _ = require('lodash')
+const { getMetadata } = require('@signalk/signalk-schema')
 
+<<<<<<< HEAD:src/streambundle.js
 function StreamBundle(selfId) {
+=======
+function StreamBundle (app, selfId) {
+>>>>>>> feature: send meta deltas from the schema the first time we see a specific path:lib/streambundle.js
   this.selfContext = 'vessels.' + selfId
   this.buses = {}
   this.allPathsBus = new Bacon.Bus()
@@ -27,6 +32,8 @@ function StreamBundle(selfId) {
   this.selfAllPathsStream = new Bacon.Bus()
   this.keys = new Bacon.Bus()
   this.availableSelfPaths = []
+  this.metaSent = {}
+  this.app = app
 }
 
 StreamBundle.prototype.pushDelta = function(delta) {
@@ -40,7 +47,7 @@ StreamBundle.prototype.pushDelta = function(delta) {
               pathValue.path = pathValue.path + '.meta'
             }
             var paths =
-                pathValue.path === ''
+              pathValue.path === ''
                 ? getPathsFromObjectValue(pathValue.value)
                 : [pathValue.path]
             /*
@@ -50,6 +57,14 @@ StreamBundle.prototype.pushDelta = function(delta) {
               regenerating the outgoing delta will use the unmodified, original delta pathvalue.
             */
             paths.forEach(path => {
+              if (_.isUndefined(update.meta)) {
+                addMetaDelta(
+                  this,
+                  delta.context,
+                  pathValue.path,
+                  update.timestamp
+                )
+              }
               this.push(path, {
                 path: pathValue.path,
                 value: pathValue.value,
@@ -65,6 +80,32 @@ StreamBundle.prototype.pushDelta = function(delta) {
     }
   } catch (e) {
     console.error(e)
+  }
+}
+
+function addMetaDelta (that, contextPath, path, timestamp) {
+  if (!that.metaSent[contextPath]) {
+    that.metaSent[contextPath] = []
+  } else if (that.metaSent[contextPath].indexOf(path) != -1) {
+    return
+  }
+  that.metaSent[contextPath].push(path)
+  let meta = getMetadata(contextPath + '.' + path)
+  if (meta) {
+    that.app.handleMessage('schema', {
+      context: contextPath,
+      updates: [
+        {
+          timestamp: timestamp,
+          meta: [
+            {
+              path: path,
+              value: meta
+            }
+          ]
+        }
+      ]
+    })
   }
 }
 
