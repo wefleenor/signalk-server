@@ -53,6 +53,7 @@ function load(app) {
   }
 
   setConfigDirectory(app)
+  app.config.defaultDeltas = []
   if (_.isObject(app.config.settings)) {
     debug('Using settings from constructor call, not reading defaults')
     disableWriteSettings = true
@@ -66,8 +67,6 @@ function load(app) {
       if (defaults) {
         app.config.defaultDeltas = convertOldDefaultsToDeltas(defaults)
         writeDefaultDeltasFileSync(app, app.config.defaultDeltas)
-      } else {
-        app.config.defaultDeltas = []
       }
     }
   }
