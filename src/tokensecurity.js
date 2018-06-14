@@ -580,24 +580,30 @@ module.exports = function(app, config) {
       const context =
         delta.context === app.selfContext ? 'vessels.self' : delta.context
 
-      delta.updates = delta.updates
-        .map(update => {
-          update.values = update.values
-            .map(valuePath => {
-              return strategy.checkACL(
-                principal.identifier,
-                context,
-                valuePath.path,
-                update.source,
-                'read'
-              )
-                ? valuePath
-                : null
-            })
-            .filter(vp => vp != null)
-          return update.values.length > 0 ? update : null
-        })
-        .filter(update => update != null)
+      let res = (update.values || update.meta)
+          .map(update => {
+            update.values = update.values
+              .map(valuePath => {
+                return strategy.checkACL(
+                  principal.identifier,
+                  context,
+                  valuePath.path,
+                  update.source,
+                  'read'
+                )
+                  ? valuePath
+                  : null
+              })
+              .filter(vp => vp != null)
+            if (update.values) {
+              update.values = res
+              return update.values.length > 0 ? update : null
+            } else {
+              update.meta = res
+              return update.meta.length > 0 ? update : null
+            }
+          })
+          .filter(update => update != null)
       return delta.updates.length > 0 ? delta : null
     } else if (!principal) {
       return null
