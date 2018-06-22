@@ -54,7 +54,13 @@ StreamBundle.prototype.pushDelta = function(delta) {
               regenerating the outgoing delta will use the unmodified, original delta pathvalue.
             */
             paths.forEach(path => {
-              if (_.isUndefined(update.meta)) {
+              if (
+                _.isUndefined(update.meta) &&
+                (_.isUndefined(
+                  this.app.config.settings.disableSchemaMetaDeltas
+                ) ||
+                  !this.app.config.settings.disableSchemaMetaDeltas)
+              ) {
                 addMetaDelta(
                   this,
                   delta.context,
