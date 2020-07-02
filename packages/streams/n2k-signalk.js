@@ -69,6 +69,12 @@ function ToSignalK (options) {
   }, 5000)
 }
 
+ToSignalK.prototype.isFiltered = function(source) {
+  return this.options.filters && this.options.filters.find(filter => {
+    return (!filter.source || filter.source == source.src) && (!filter.pgn || filter.pgn == source.pgn)
+  })
+}
+
 ToSignalK.prototype._transform = function (chunk, encoding, done) {
   try {
 
@@ -80,8 +86,10 @@ ToSignalK.prototype._transform = function (chunk, encoding, done) {
     
     const delta = this.n2kMapper.toDelta(chunk)
 
-    if (delta && delta.updates[0].values.length > 0) {
-      delta.updates.forEach(update => {
+    if (delta && delta.updates[0].values.length > 0 ) {
+      if ( !this.isFiltered(delta.updates[0].source) ) {
+        const $source = getSourceId(delta.updates[0].source)
+        delta.updates.forEach(update => {
           update.values.forEach(kv => {
             if ( kv.path && kv.path.startsWith('notifications.') ) {
               const source = update.source.src
@@ -102,7 +110,7 @@ ToSignalK.prototype._transform = function (chunk, encoding, done) {
                         updates: [
                           {
                             source: update.source,
-                            $source: getSourceId(update.source),
+                            $source: $source,
                             values: [ copy ]
                           }
                         ]
@@ -122,8 +130,9 @@ ToSignalK.prototype._transform = function (chunk, encoding, done) {
               }
             }
           })
-      })
-      this.push(delta)
+        })
+        this.push(delta)
+      }
     }
   } catch (ex) {
     console.error(ex)
