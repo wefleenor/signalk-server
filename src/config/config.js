@@ -274,6 +274,7 @@ function setDefaultDeltas(app) {
   } catch (e) {
     if (e.code && e.code === 'ENOENT') {
       debug(`No default deltas found at ${defaultsPath.toString()}`)
+      return
     } else {
       console.log(e)
     }
