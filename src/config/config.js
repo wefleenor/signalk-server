@@ -57,8 +57,8 @@ function load(app) {
   if (_.isObject(app.config.settings)) {
     debug('Using settings from constructor call, not reading defaults')
     disableWriteSettings = true
-    if (!config.defaults) {
-      config.defaults = {}
+    if (config.defaults) {
+      app.config.defaultDeltas = convertOldDefaultsToDeltas(config.defaults)
     }
   } else {
     readSettingsFile(app)
@@ -221,9 +221,9 @@ function getDefaultsPath(app) {
   return path.join(app.config.configPath, defaultsFile)
 }
 
-function getDefaultDeltasPath (app) {
+function getDefaultDeltasPath(app) {
   const defaultsFile =
-    app.config.configPath != app.config.appPath
+    app.config.configPath !== app.config.appPath
       ? 'defaultDeltas.json'
       : 'settings/defaultDeltas.json'
   return path.join(app.config.configPath, defaultsFile)
@@ -259,7 +259,7 @@ function getFullDefaults(app) {
   return undefined
 }
 
-function setDefaultDeltas (app) {
+function setDefaultDeltas(app) {
   const defaultsPath = getDefaultDeltasPath(app)
   try {
     let deltas = readDefaultDeltasFile(app)
@@ -281,7 +281,7 @@ function setDefaultDeltas (app) {
   return app.config.defaultDeltas
 }
 
-function sendDefaultDeltas (app) {
+function sendDefaultDeltas(app) {
   let copy = JSON.parse(JSON.stringify(app.config.defaultDeltas))
   copy.forEach(delta => {
     delta.context = app.selfContext
@@ -293,16 +293,16 @@ function writeDefaultsFile(app, defaults, cb) {
   fs.writeFile(getDefaultsPath(app), JSON.stringify(defaults, null, 2), cb)
 }
 
-function writeDefaultDeltasFile (app, deltas, cb) {
+function writeDefaultDeltasFile(app, deltas, cb) {
   fs.writeFile(getDefaultDeltasPath(app), JSON.stringify(deltas, null, 2), cb)
 }
 
-function writeDefaultDeltasFileSync (app, deltas) {
+function writeDefaultDeltasFileSync(app, deltas) {
   fs.writeFileSync(getDefaultDeltasPath(app), JSON.stringify(deltas, null, 2))
 }
 
-function getDefaultValue (app, path) {
-  if (path.indexOf('.') == -1) {
+function getDefaultValue(app, vpath) {
+  if (vpath.indexOf('.') === -1) {
     let rootUpdates = app.config.defaultDeltas.reduce((acc, delta) => {
       if (delta.updates) {
         delta.updates.forEach(update => {
@@ -318,16 +318,16 @@ function getDefaultValue (app, path) {
       return acc
     }, [])
     let keyUpdate = rootUpdates.find(update => {
-      return !_.isUndefined(update[path])
+      return !_.isUndefined(update[vpath])
     })
-    return _.isUndefined(keyUpdate) ? undefined : keyUpdate[path]
+    return _.isUndefined(keyUpdate) ? undefined : keyUpdate[vpath]
   } else {
     let deltas = app.config.defaultDeltas.reduce((acc, delta) => {
       if (delta.updates) {
         delta.updates.forEach(update => {
           if (update.values) {
             let value = update.values.forEach(v => {
-              if (v.path == path) {
+              if (v.path === vpath) {
                 acc.push(v.value)
               }
             })
@@ -340,13 +340,13 @@ function getDefaultValue (app, path) {
   }
 }
 
-function setDefaultValue (app, path, value) {
-  if (path.indexOf('.') == -1) {
+function setDefaultValue(app, vpath, value) {
+  if (vpath.indexOf('.') === -1) {
     let rootUpdates = app.config.defaultDeltas.reduce((acc, delta) => {
       if (delta.updates) {
         delta.updates.forEach(update => {
           if (update.values) {
-            let value = update.values.forEach(v => {
+            update.values.forEach(v => {
               if (v.path === '') {
                 acc.push(v.value)
               }
@@ -357,7 +357,7 @@ function setDefaultValue (app, path, value) {
       return acc
     }, [])
     let keyUpdate = rootUpdates.find(update => {
-      return !_.isUndefined(update[path])
+      return !_.isUndefined(update[vpath])
     })
     if (_.isUndefined(keyUpdate)) {
       app.config.defaultDeltas.push({
@@ -367,7 +367,7 @@ function setDefaultValue (app, path, value) {
               {
                 path: '',
                 value: {
-                  [path]: value
+                  [vpath]: value
                 }
               }
             ]
@@ -375,15 +375,15 @@ function setDefaultValue (app, path, value) {
         ]
       })
     } else {
-      keyUpdate[path] = value
+      keyUpdate[vpath] = value
     }
   } else {
     let values = app.config.defaultDeltas.reduce((acc, delta) => {
       if (delta.updates) {
         delta.updates.forEach(update => {
           if (update.values) {
-            let value = update.values.forEach(v => {
-              if (v.path == path) {
+            update.values.forEach(v => {
+              if (v.path === vpath) {
                 acc.push(v)
               }
             })
@@ -392,13 +392,13 @@ function setDefaultValue (app, path, value) {
       }
       return acc
     }, [])
-    if (values.length == 0) {
+    if (values.length === 0) {
       app.config.defaultDeltas.push({
         updates: [
           {
             values: [
               {
-                path: path,
+                path: vpath,
                 value: value
               }
             ]
@@ -411,35 +411,35 @@ function setDefaultValue (app, path, value) {
   }
 }
 
-function removeDefaultValue (app, path) {
-  let isRoot = path.indexOf('.') == -1
+function removeDefaultValue(app, vpath) {
+  let isRoot = vpath.indexOf('.') === -1
   app.config.defaultDeltas.forEach(delta => {
     if (delta.updates) {
       delta.updates.forEach(update => {
         if (update.values) {
           update.values.forEach(v => {
-            if (isRoot && v.path == '' && !_.isUndefined(v.value[path])) {
-              delete v.value[path]
-              if (_.keys(v.value).length == 0) {
+            if (isRoot && v.path === '' && !_.isUndefined(v.value[vpath])) {
+              delete v.value[vpath]
+              if (_.keys(v.value).length === 0) {
                 _.pull(update.values, v)
               }
-            } else if (v.path == path) {
+            } else if (v.path === vpath) {
               _.pull(update.values, v)
             }
           })
-          if (update.values.length == 0) {
+          if (update.values.length === 0) {
             _.pull(delta.updates, update)
           }
         }
       })
-      if (delta.updates.length == 0) {
+      if (delta.updates.length === 0) {
         _.pull(app.config.defaultDeltas, delta)
       }
     }
   })
 }
 
-function setSelfSettings (app) {
+function setSelfSettings(app) {
   var name = getDefaultValue(app, 'name')
   var mmsi = getDefaultValue(app, 'mmsi')
   var uuid = getDefaultValue(app, 'uuid')
@@ -555,27 +555,27 @@ function getExternalPort(config) {
   return ''
 }
 
-function scanDefaults (path, item, metaValues, values) {
+function scanDefaults(vpath, item, metaValues, values) {
   _.keys(item).forEach(key => {
     let value = item[key]
     if (key === 'meta') {
       metaValues.push({
-        path: path,
+        path: vpath,
         value: value
       })
     } else if (key === 'value') {
       values.push({
-        path: path,
+        path: vpath,
         value: value
       })
     } else if (_.isObject(value)) {
-      let childPath = path.length > 0 ? `${path}.${key}` : key
+      let childPath = vpath.length > 0 ? `${vpath}.${key}` : key
       scanDefaults(childPath, value, metaValues, values)
     }
   })
 }
 
-function convertOldDefaultsToDeltas (defaults) {
+function convertOldDefaultsToDeltas(defaults) {
   let deltas = []
   let self = _.get(defaults, 'vessels.self')
   if (self) {

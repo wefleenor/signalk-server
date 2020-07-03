@@ -98,9 +98,7 @@ describe('Security', () => {
     url = `http://0.0.0.0:${port}`
     
     server = await startServerP(port, true, {
-      config: {
-        disableSchemaMetaDeltas: true
-      }
+      disableSchemaMetaDeltas: true
     }, securityConfig)
 
     readToken = await getReadOnlyToken(server)

@@ -163,7 +163,7 @@ describe('Subscriptions', _ => {
     serverP = freeport().then(p => {
       port = p
       deltaUrl = 'http://localhost:' + port + '/signalk/v1/api/_test/delta'
-      return startServerP(p, { disableSchemaMetaDeltas: true })
+      return startServerP(p, false, { settings: {disableSchemaMetaDeltas: true} })
     })
   })
 

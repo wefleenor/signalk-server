@@ -149,35 +149,15 @@ const expectedOrder = [
     ]
   },
   {
-    context:
-      'vessels.urn:mrn:signalk:uuid:2204ae24-c944-5ffe-8d1d-4d411c9cea2e',
-    updates: [
+    "context": "vessels.urn:mrn:signalk:uuid:db826a2c-c80a-4f69-8199-a83e41f45127",
+    "updates": [
       {
-        $source: 'schema',
-        timestamp: '2014-05-03T09:14:11.099Z',
-        meta: [
+        "$source": "deltaFromHttp",
+        "timestamp": "2014-05-03T09:14:11.099Z",
+        "values": [
           {
-            path: 'navigation.log',
-            value: {
-              units: 'm',
-              description: 'Total distance traveled'
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    context:
-      'vessels.urn:mrn:signalk:uuid:2204ae24-c944-5ffe-8d1d-4d411c9cea2e',
-    updates: [
-      {
-        $source: 'deltaFromHttp',
-        timestamp: '2014-05-03T09:14:11.099Z',
-        values: [
-          {
-            path: 'navigation.log',
-            value: 17404540
+            "path": "imaginary.path",
+            "value": 17404540
           }
         ]
       }
@@ -279,9 +259,7 @@ describe('deltacache', () => {
         )
         self.should.have.nested.property('name', 'TestBoat')
 
-        delete fullTree.vessels[
-          'urn:mrn:signalk:uuid:c0d79334-4e25-4245-8892-54e8ccc8021d'
-        ].imaginary
+        delete self.imaginary
         fullTree.should.be.validSignalK
       })
     })
@@ -311,9 +289,8 @@ describe('deltacache', () => {
     return serverP.then(server => {
       return deltaP.then(() => {
         const fullTree = server.app.deltaCache.buildFull(null, ['sources'])
-        delete fullTree.vessels[
-          'urn:mrn:signalk:uuid:c0d79334-4e25-4245-8892-54e8ccc8021d'
-        ].imaginary
+        const self = _.get(fullTree, fullTree.self)
+        delete self.imaginary
         fullTree.should.be.validSignalK
         fullTree.sources.should.deep.equal({
           defaults: {},

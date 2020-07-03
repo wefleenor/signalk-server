@@ -18,7 +18,7 @@ const Bacon = require('baconjs')
 const _ = require('lodash')
 const { getMetadata } = require('@signalk/signalk-schema')
 
-function StreamBundle (app, selfId) {
+function StreamBundle(app, selfId) {
   this.selfContext = 'vessels.' + selfId
   this.buses = {}
   this.allPathsBus = new Bacon.Bus()
@@ -32,9 +32,9 @@ function StreamBundle (app, selfId) {
   this.app = app
 }
 
-StreamBundle.prototype.pushDelta = function (delta) {
+StreamBundle.prototype.pushDelta = function(delta) {
   var that = this
-  function processIems (update, items, isMeta) {
+  function processIems(update, items, isMeta) {
     if (items) {
       items.forEach(pathValue => {
         let outgoingPath = pathValue.path
@@ -88,10 +88,10 @@ StreamBundle.prototype.pushDelta = function (delta) {
   }
 }
 
-function addMetaDelta (that, contextPath, path, timestamp) {
+function addMetaDelta(that, contextPath, path, timestamp) {
   if (!that.metaSent[contextPath]) {
     that.metaSent[contextPath] = []
-  } else if (that.metaSent[contextPath].indexOf(path) != -1) {
+  } else if (that.metaSent[contextPath].indexOf(path) !== -1) {
     return
   }
   that.metaSent[contextPath].push(path)

@@ -43,6 +43,7 @@ const {
   saveSecurityConfig
 } = require('./security.js')
 const { startDeltaStatistics, incDeltaStatistics } = require('./deltastats')
+const config = require('./config/config')
 
 function Server(opts) {
   const FILEUPLOADSIZELIMIT = process.env.FILEUPLOADSIZELIMIT || '10mb'
@@ -57,7 +58,7 @@ function Server(opts) {
   _.merge(app, opts)
 
   app.logging = require('./logging')(app)
-  require('./config/config').load(app)
+  config.load(app)
   app.version = '0.0.1'
 
   startSecurity(app, opts ? opts.securityConfig : null)
@@ -68,7 +69,7 @@ function Server(opts) {
   app.signalk = new FullSignalK(
     app.selfId,
     app.selfType,
-    JSON.parse(JSON.stringify(app.config.defaults))
+    app.config.defaults && JSON.parse(JSON.stringify(app.config.defaults))
   )
 
   const deltachain = new DeltaChain(app.signalk.addDelta.bind(app.signalk))
@@ -268,12 +269,15 @@ Server.prototype.start = function() {
       ]
     })
   }
-  if ( !process.env.SIGNALK_DISABLE_SERVER_UPDATES ) {
+  if (!process.env.SIGNALK_DISABLE_SERVER_UPDATES) {
     checkForNewServerVersion(app.config.version, serverUpgradeIsAvailable)
     app.intervals.push(
       setInterval(
         () =>
-          checkForNewServerVersion(app.config.version, serverUpgradeIsAvailable),
+          checkForNewServerVersion(
+            app.config.version,
+            serverUpgradeIsAvailable
+          ),
         60 * 1000 * 60 * 24
       )
     )
