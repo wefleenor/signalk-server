@@ -264,10 +264,16 @@ function doFetchDistTags() {
   return fetch('http://registry.npmjs.org/-/package/signalk-server/dist-tags')
 }
 
-function getLatestServerVersion(
+export interface ServerVersionInfo {
+  version: string
+  disttag: string
+  minimumNodeVersion: string
+}
+
+function getLatestServerVersionInfo(
   currentVersion: string,
   distTags = doFetchDistTags
-): Promise<string> {
+): Promise<ServerVersionInfo> {
   return new Promise((resolve, reject) => {
     distTags()
       .then(npmjsResults => npmjsResults.json())
@@ -275,13 +281,28 @@ function getLatestServerVersion(
         const prereleaseData = semver.prerelease(currentVersion)
         if (prereleaseData) {
           if (semver.satisfies(npmjsParsed.latest, `>${currentVersion}`)) {
-            resolve(npmjsParsed.latest)
+            return [npmjsParsed.latest, 'latest']
           } else {
-            resolve(npmjsParsed[prereleaseData[0]])
+            return [npmjsParsed[prereleaseData[0]], 'beta']
           }
         } else {
-          resolve(npmjsParsed.latest)
+          return([npmjsParsed.latest, 'latest'])
         }
+      })
+      .then(([version, disttag]) => {
+        return fetch('https://registry.npmjs.org/signalk-server', {
+          headers: {
+            Accept: 'application/vnd.npm.install-v1+json'
+          }
+        })
+          .then(res => res.json())
+          .then(moduleMetadata => {
+            resolve({
+              version,
+              disttag,
+              minimumNodeVersion: `${moduleMetadata.versions[version].engines}`
+            })
+          })
       })
       .catch(reject)
   })
@@ -295,10 +316,10 @@ function checkForNewServerVersion(
   ) => any,
   getLatestServerVersionP: (
     version: string
-  ) => Promise<string> = getLatestServerVersion
+  ) => Promise<ServerVersionInfo> = getLatestServerVersionInfo
 ) {
   getLatestServerVersionP(currentVersion)
-    .then((version: string) => {
+    .then(({version}) => {
       if (semver.satisfies(new SemVer(version), `>${currentVersion}`)) {
         serverUpgradeIsAvailable(undefined, version)
       }
@@ -326,7 +347,7 @@ module.exports = {
   installModule,
   removeModule,
   findModulesWithKeyword,
-  getLatestServerVersion,
+  getLatestServerVersionInfo,
   checkForNewServerVersion,
   getAuthor,
   restoreModules
